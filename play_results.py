@@ -14,6 +14,7 @@ import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 import os
+from tqdm import tqdm
 
 
 class PlayResults(object):
@@ -68,7 +69,8 @@ class PlayResults(object):
         gt_df = self.get_gt_df()
         predict_df = self.get_prediction_df()
 
-        for category in self.categories:
+        pbar = tqdm(self.categories)
+        for category in pbar:
             gt = gt_df[category]
             predict = predict_df[category]
             thresh_lst = np.arange(0, 1.0, 0.05)
@@ -100,7 +102,7 @@ class PlayResults(object):
 
             save_path = os.path.join(thresh_path, category + '_by_thresh.png')
             plt.savefig(save_path, facecolor='papayawhip', bbox_inches='tight', dpi=300)
-
+            pbar.set_description('Processing category {}'.format(category))
         print('Finished.')
 
 if __name__ == '__main__':
