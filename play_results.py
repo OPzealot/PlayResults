@@ -12,16 +12,18 @@ import pickle
 import json
 import pandas as pd
 import numpy as np
+from matplotlib import pyplot as plt
+import os
 
 
 class PlayResults(object):
-    def __init__(self, result_path, test_json_path):
+    def __init__(self, result_path, test_json_path, out_path):
+        self.out_path = out_path
         with open(result_path, 'rb') as f:
             self.results = pickle.load(f)
         with open(test_json_path, 'r', encoding='utf-8') as f:
             self.test_dict = json.load(f)
         self.categories = list(map(lambda x: x['name'], self.test_dict['categories']))
-
 
     def get_prediction_df(self):
         df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
@@ -61,5 +63,49 @@ class PlayResults(object):
         return precision, recall
 
     def pr_by_thresh(self):
+        thresh_path = os.path.join(self.out_path, 'Thresh')
+        os.makedirs(thresh_path, exist_ok=True)
         gt_df = self.get_gt_df()
         predict_df = self.get_prediction_df()
+
+        for category in self.categories:
+            gt = gt_df[category]
+            predict = predict_df[category]
+            thresh_lst = np.arange(0, 1.0, 0.05)
+            precision_lst = []
+            recall_lst = []
+
+            for thresh in thresh_lst:
+                precision, recall = self.get_precision_recall(gt, predict, thresh)
+                precision_lst.append(precision)
+                recall_lst.append(recall)
+
+            fig = plt.figure(figsize=(20, 8))
+            ax_1, ax_2 = fig.subplots(1, 2)
+            fig.set_facecolor('papayawhip')
+            ax_1.set_xlabel('Threshold')
+            ax_1.set_ylabel('Precision')
+            ax_1.set_xticks(thresh_lst)
+
+            ax_1.set_title('[{}] Precision VS Threshold'.format(category))
+            ax_1.grid(alpha=0.75, linestyle='--', color='y')
+            ax_1.plot(thresh_lst, precision_lst)
+
+            ax_2.set_xlabel('Threshold')
+            ax_2.set_ylabel('Recall')
+            ax_2.set_xticks(thresh_lst)
+            ax_2.set_title('[{}] Recall VS Threshold'.format(category))
+            ax_2.grid(alpha=0.75, linestyle='--', color='y')
+            ax_2.plot(thresh_lst, recall_lst)
+
+            save_path = os.path.join(thresh_path, category + '_by_thresh.png')
+            plt.savefig(save_path, facecolor='papayawhip', bbox_inches='tight', dpi=300)
+
+        print('Finished.')
+
+if __name__ == '__main__':
+    result_path = r'D:\Working\Tianma\18902\work_dir\2020_0416\model.pth.pkl'
+    test_json_path = r'D:\Working\Tianma\18902\work_dir\2020_0416\test.json'
+    out_path = r'D:\Working\Tianma\18902\work_dir\2020_0416'
+    playResult = PlayResults(result_path, test_json_path, out_path)
+    playResult.pr_by_thresh()
