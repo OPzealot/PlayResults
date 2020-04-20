@@ -35,4 +35,16 @@ class PlayResults(object):
         return df
 
     def get_gt_df(self):
-        
+        df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
+                          index=range(len(self.results)), columns=self.categories)
+        ann_lst = self.test_dict['annotations']
+        img_id = None
+        img_index = -1
+        for i in range(len(ann_lst)):
+            tmp_id = ann_lst[i]['image_id']
+            if img_id is None or img_id != tmp_id:
+                img_id = tmp_id
+                img_index += 1
+            cat_id = ann_lst[i]['category_id'] - 1
+            df.iloc[img_index, cat_id] = 1
+        return df
