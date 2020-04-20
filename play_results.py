@@ -22,6 +22,7 @@ class PlayResults(object):
             self.test_dict = json.load(f)
         self.categories = list(map(lambda x: x['name'], self.test_dict['categories']))
 
+
     def get_prediction_df(self):
         df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
                           index=range(len(self.results)), columns=self.categories)
@@ -48,3 +49,17 @@ class PlayResults(object):
             cat_id = ann_lst[i]['category_id'] - 1
             df.iloc[img_index, cat_id] = 1
         return df
+
+    @staticmethod
+    def get_precision_recall(gt, predict, thresh):
+        gt_total = gt.sum()
+        predict = predict > thresh
+        predict_total = predict.sum()
+        correct = (predict * gt).astype(bool).sum()
+        precision = round(correct / predict_total, 3)
+        recall = round(correct / gt_total, 3)
+        return precision, recall
+
+    def pr_by_thresh(self):
+        gt_df = self.get_gt_df()
+        predict_df = self.get_prediction_df()
