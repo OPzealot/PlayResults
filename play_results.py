@@ -82,28 +82,24 @@ class PlayResults(object):
                 precision_lst.append(precision)
                 recall_lst.append(recall)
 
-            fig = plt.figure(figsize=(20, 8))
-            ax_1, ax_2 = fig.subplots(1, 2)
+            fig = plt.figure(figsize=(10, 8))
+            ax = fig.subplots()
             fig.set_facecolor('papayawhip')
-            ax_1.set_xlabel('Threshold')
-            ax_1.set_ylabel('Precision')
-            ax_1.set_xticks(thresh_lst)
+            ax.set_xlabel('Threshold')
+            ax.set_ylabel('Precision')
+            ax.set_xticks(thresh_lst)
 
-            ax_1.set_title('[{}] Precision VS Threshold'.format(category))
-            ax_1.grid(alpha=0.75, linestyle='--', color='y')
-            ax_1.plot(thresh_lst, precision_lst)
-
-            ax_2.set_xlabel('Threshold')
-            ax_2.set_ylabel('Recall')
-            ax_2.set_xticks(thresh_lst)
-            ax_2.set_title('[{}] Recall VS Threshold'.format(category))
-            ax_2.grid(alpha=0.75, linestyle='--', color='y')
-            ax_2.plot(thresh_lst, recall_lst)
+            ax.set_title('[{}] Precision and Recall VS Threshold'.format(category))
+            ax.grid(alpha=0.75, linestyle='--', color='y')
+            ax.plot(thresh_lst, precision_lst, label='Precision')
+            ax.plot(thresh_lst, recall_lst, label='Recall')
+            ax.legend(bbox_to_anchor=(0.84, 0.01), loc=3, borderaxespad=0)
 
             save_path = os.path.join(thresh_path, category + '_by_thresh.png')
             plt.savefig(save_path, facecolor='papayawhip', bbox_inches='tight', dpi=300)
             pbar.set_description('Processing category {}'.format(category))
         print('Finished.')
+
 
 if __name__ == '__main__':
     result_path = r'D:\Working\Tianma\18902\work_dir\2020_0416\model.pth.pkl'
