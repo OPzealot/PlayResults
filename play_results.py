@@ -18,13 +18,24 @@ from tqdm import tqdm
 
 
 class PlayResults(object):
-    def __init__(self, result_path, test_json_path, out_path):
+    def __init__(self, result_path, out_path, test_json_path=None, test_table_path=None, category_path=None):
+        assert test_json_path is not None or test_table_path is not None
         self.out_path = out_path
         with open(result_path, 'rb') as f:
             self.results = pickle.load(f)
-        with open(test_json_path, 'r', encoding='utf-8') as f:
-            self.test_dict = json.load(f)
-        self.categories = list(map(lambda x: x['name'], self.test_dict['categories']))
+
+        self.test_json_path = test_json_path
+        self.test_table_path = test_table_path
+        if test_json_path is not None:
+            self.categories = list(map(lambda x: x['name'], self.test_dict['categories']))
+        else:
+            assert category_path is not None
+            categories = []
+            for line in open(category_path, 'r'):
+                lineTemp = line.strip()
+                if lineTemp:
+                    categories.append(lineTemp)
+            self.categories = categories
 
     def get_prediction_df(self):
         df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
@@ -38,10 +49,13 @@ class PlayResults(object):
                         df.iloc[img_index, cat_id] = conf
         return df
 
-    def get_gt_df(self):
+    def get_gt_df_from_json(self):
+        with open(self.test_json_path, 'r', encoding='utf-8') as f:
+            test_dict = json.load(f)
+
         df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
                           index=range(len(self.results)), columns=self.categories)
-        ann_lst = self.test_dict['annotations']
+        ann_lst = test_dict['annotations']
         img_id = None
         img_index = -1
         for i in range(len(ann_lst)):
@@ -102,8 +116,8 @@ class PlayResults(object):
 
 
 if __name__ == '__main__':
-    result_path = r'D:\Working\Tianma\18902\work_dir\2020_0416\model.pth.pkl'
-    test_json_path = r'D:\Working\Tianma\18902\work_dir\2020_0416\test.json'
-    out_path = r'D:\Working\Tianma\18902\work_dir\2020_0416'
+    result_path = r'D:\Working\Tianma\13902\work_dir\test\model.pth.pkl'
+    test_json_path = r'D:\Working\Tianma\13902\work_dir\test\test.json'
+    out_path = r'D:\Working\Tianma\13902\work_dir\test'
     playResult = PlayResults(result_path, test_json_path, out_path)
     playResult.pr_by_thresh()
