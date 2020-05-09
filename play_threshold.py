@@ -4,7 +4,7 @@
 author: liusili
 @contact: liusili@unionbigdata.com
 @software:
-@file: play_results
+@file: play_threshold
 @time: 2020/4/20
 @desc: 
 """
@@ -17,7 +17,7 @@ import os
 from tqdm import tqdm
 
 
-class PlayResults(object):
+class PlayThreshold(object):
     def __init__(self, result_path, out_path, test_json_path=None, test_table_path=None, category_path=None):
         assert test_json_path is not None or test_table_path is not None
         self.out_path = out_path
@@ -137,8 +137,8 @@ if __name__ == '__main__':
     out_path = r'D:\Working\Tianma\13902\TEST\0508'
     table_path = r'D:\Working\Tianma\13902\TEST\0508\deploy_results.xlsx'
     category_path = r'D:\Working\Tianma\13902\deploy\classes.txt'
-    playResult = PlayResults(result_path, out_path,
-                             test_json_path=None,
-                             test_table_path=table_path,
-                             category_path=category_path)
-    playResult.pr_by_thresh()
+    playThreshold = PlayThreshold(result_path, out_path,
+                                  test_json_path=None,
+                                  test_table_path=table_path,
+                                  category_path=category_path)
+    playThreshold.pr_by_thresh()
