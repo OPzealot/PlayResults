@@ -68,7 +68,7 @@ class PlayResults(object):
         return df
 
     def get_gt_df_from_table(self):
-        table_df = pd.read_excel(self.test_table_path)
+        table_df = pd.read_excel(self.test_table_path, index_col=0)
 
         df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
                           index=range(len(self.results)), columns=self.categories)
@@ -132,8 +132,13 @@ class PlayResults(object):
 
 
 if __name__ == '__main__':
-    result_path = r'D:\Working\Tianma\13902\work_dir\test\model.pth.pkl'
-    test_json_path = r'D:\Working\Tianma\13902\work_dir\test\test.json'
-    out_path = r'D:\Working\Tianma\13902\work_dir\test'
-    playResult = PlayResults(result_path, test_json_path, out_path)
+    result_path = r'D:\Working\Tianma\13902\TEST\0508\deploy_results.pkl'
+    # test_json_path = r'D:\Working\Tianma\13902\work_dir\test\test.json'
+    out_path = r'D:\Working\Tianma\13902\TEST\0508'
+    table_path = r'D:\Working\Tianma\13902\TEST\0508\deploy_results.xlsx'
+    category_path = r'D:\Working\Tianma\13902\deploy\classes.txt'
+    playResult = PlayResults(result_path, out_path,
+                             test_json_path=None,
+                             test_table_path=table_path,
+                             category_path=category_path)
     playResult.pr_by_thresh()
