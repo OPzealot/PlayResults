@@ -67,6 +67,17 @@ class PlayResults(object):
             df.iloc[img_index, cat_id] = 1
         return df
 
+    def get_gt_df_from_table(self):
+        table_df = pd.read_excel(self.test_table_path)
+
+        df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
+                          index=range(len(self.results)), columns=self.categories)
+
+        for i in df.index:
+            category = table_df.loc[i+1]['category']
+            df.loc[i][category] = 1
+        return df
+
     @staticmethod
     def get_precision_recall(gt, predict, thresh):
         gt_total = gt.sum()
@@ -80,7 +91,12 @@ class PlayResults(object):
     def pr_by_thresh(self):
         thresh_path = os.path.join(self.out_path, 'Thresh')
         os.makedirs(thresh_path, exist_ok=True)
-        gt_df = self.get_gt_df()
+
+        if self.test_json_path is not None:
+            gt_df = self.get_gt_df_from_json()
+        else:
+            gt_df = self.get_gt_df_from_table()
+
         predict_df = self.get_prediction_df()
 
         pbar = tqdm(self.categories)
