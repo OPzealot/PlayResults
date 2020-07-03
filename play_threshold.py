@@ -27,7 +27,7 @@ class PlayThreshold(object):
         self.test_json_path = test_json_path
         self.test_table_path = test_table_path
         if test_json_path is not None:
-            self.categories = list(map(lambda x: x['name'], self.test_dict['categories']))
+            self.categories = None
         else:
             assert category_path is not None
             categories = []
@@ -52,6 +52,8 @@ class PlayThreshold(object):
     def get_gt_df_from_json(self):
         with open(self.test_json_path, 'r', encoding='utf-8') as f:
             test_dict = json.load(f)
+
+        self.categories = list(map(lambda x: x['name'], test_dict['categories']))
 
         df = pd.DataFrame(np.zeros([len(self.results), len(self.categories)]),
                           index=range(len(self.results)), columns=self.categories)
@@ -132,13 +134,13 @@ class PlayThreshold(object):
 
 
 if __name__ == '__main__':
-    result_path = r'D:\Working\Tianma\13902\TEST\0508\deploy_results.pkl'
-    # test_json_path = r'D:\Working\Tianma\13902\work_dir\test\test.json'
-    out_path = r'D:\Working\Tianma\13902\TEST\0508'
+    result_path = r'D:\Working\Tianma\1x1A4\deploy\1x1A4_0309\test.pkl'
+    test_json_path = r'D:\Working\Tianma\1x1A4\deploy\1x1A4_0309\test.json'
+    out_path = r'D:\Working\Tianma\1x1A4\deploy\1x1A4_0309'
     table_path = r'D:\Working\Tianma\13902\TEST\0508\deploy_results.xlsx'
     category_path = r'D:\Working\Tianma\13902\deploy\classes.txt'
     playThreshold = PlayThreshold(result_path, out_path,
-                                  test_json_path=None,
-                                  test_table_path=table_path,
-                                  category_path=category_path)
+                                  test_json_path=test_json_path,
+                                  test_table_path=None,
+                                  category_path=None)
     playThreshold.pr_by_thresh()
