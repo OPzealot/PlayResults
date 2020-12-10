@@ -9,27 +9,68 @@ author: liusili
 @desc: 
 """
 import cv2
+import colorsys
 import numpy as np
 import os
+import sys
 from ast import literal_eval
 import pandas as pd
 from tqdm import tqdm
 
+COLOR = 4
+# 点灯机
+# FONTSIZE = 0.2
+# 默认
+FONTSIZE = 1.5
+LABEL = 1
 
-def visualize_output(img_path, category, inference, bbox, score, **img_info):
+
+def get_color(inference, out_lst):
+    """
+    对不同框分配不同颜色（最多6种），特别：对最终预测框输出绿色
+    :param inference:
+    :param out_lst:
+    :return:
+    """
+    global COLOR
+    hsvList = [(x/COLOR, 0.8, 1.) for x in range(COLOR)]
+    colorList = list(map(lambda x: colorsys.hsv_to_rgb(*x), hsvList))
+    colorList = list(map(lambda x: [int(x[0] * 255), int(x[1] * 255), int(x[2] * 255)], colorList))
+
+    colorDict = {inference: [0, 255, 0]}
+    i = 0
+    for outInfo in out_lst:
+        _, outCat, _ = outInfo
+        if outCat not in colorDict:
+            colorDict[outCat] = colorList[i]
+            i = min(COLOR-1, i+1)
+
+    return colorDict
+
+
+def visualize_output(img_path, category, inference, score, bbox, out_lst, **img_info):
+    global FONTSIZE
+    global LABEL
+    colorDict = get_color(inference, out_lst)
+    if bbox and not out_lst or inference == 'Others':
+        out_lst.append([bbox, inference, score])
     img = cv2.imread(img_path)
     height = img.shape[0]
     width = img.shape[1]
-    # font_size = round(height / 550, 1)
-    font_size = round(height / 250, 1)
-    font_length = int(font_size * 14)
-    font_height = int(font_size * 20)
-    thickness = int(font_size * 0.6 + 1)
-
-    gt_text_cord = (1, font_height)
-    cv2.putText(img, category, gt_text_cord,
-                cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                font_size, (0, 0, 255), thickness)
+    fontScale = round(height / 750, 1) * FONTSIZE
+    # for mask
+    fontScale = round(height / 450, 1) * FONTSIZE
+    fontFace = cv2.FONT_HERSHEY_DUPLEX
+    # fontScale = round(height / 250, 1)
+    # font_length = int(fontScale * 14)
+    # fontHeight = int(fontScale * 20)
+    thickness = int(fontScale + 1)
+    textSize, _ = cv2.getTextSize(category, fontFace, fontScale, thickness)
+    fontHeight = int(textSize[1]*1.4)
+    
+    # gt_text_cord = (1, fontHeight)
+    gt_text_cord = (1, height - 1)
+    cv2.putText(img, category, gt_text_cord, fontFace, fontScale/FONTSIZE, (0, 0, 255), thickness)
 
     i = 1
     for key in img_info:
@@ -52,12 +93,20 @@ def visualize_output(img_path, category, inference, bbox, score, **img_info):
         if key == 'short':
             short = img_info['short']
             if not np.isnan(short):
-                if short == 0: text = '(0)No short.'
-                elif short == 1: text = '(1)Short in pixel.'
-                elif short == 2: text = '(2)Short between pixel.'
+                if short == 0:
+                    text = '(0)No short.'
+                elif short == 1:
+                    text = '(1)Short in pixel.'
+                elif short == 2:
+                    text = '(2)Short between pixel.'
                 color = (0, 255, 0)
             else:
                 continue
+
+        if key == 'defect_area':
+            area = img_info['defect_area']
+            text = '{:.1f} pixels'.format(area)
+            color = (0, 255, 255)
 
         if key == 'ab_info':
             ab_info = img_info['ab_info']
@@ -71,53 +120,74 @@ def visualize_output(img_path, category, inference, bbox, score, **img_info):
 
                 cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 0, 255), thickness)
 
-                p_cord = (min(xmin, width - font_length * 3), ymin + font_height)
-                cv2.putText(img, '{:.0f}%'.format(percentage*100), p_cord,
-                            cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                            font_size, (0, 0, 255), thickness)
+                abText = '{:.0f}%'.format(percentage*100)
+                abTextSize, _ = cv2.getTextSize(abText, fontFace, fontScale, thickness)
+                abCord = (min(xmin, width - abTextSize[0]), ymin + fontHeight)
+                cv2.putText(img, abText, abCord, fontFace, fontScale, (0, 0, 255), thickness)
             continue
 
         i += 1
-        key_text_cord = (1, font_height * i)
+        key_text_cord = (1, fontHeight * i)
         cv2.putText(img, key.upper() + ':{}'.format(text),
-                    key_text_cord,
-                    cv2.FONT_HERSHEY_COMPLEX_SMALL,
-                    font_size, color, thickness)
+                    key_text_cord, fontFace, fontScale, color, thickness)
+    
+    inferText = inference + ':{:.3f}'.format(score)
+    inferTextSize, _ = cv2.getTextSize(inferText, fontFace, fontScale, thickness)
+    inferTextCord = (width - inferTextSize[0], fontHeight)
+    # cv2.putText(img, inference + ':{:.3f}'.format(score), inferTextCord,
+    #             fontFace, fontScale, (0, 255, 0), thickness)
 
-    infer_text_length = font_length * (len(inference + ':{:.3f}'.format(score)))
-    infer_text_cord = (width - infer_text_length, font_height)
-    cv2.putText(img, inference + ':{:.3f}'.format(score), infer_text_cord,
-                cv2.FONT_HERSHEY_COMPLEX_SMALL, 
-                font_size, (0, 255, 0), thickness)
-    if len(bbox) != 0:
+    fontScale = fontScale * 0.6
+    for outInfo in out_lst:
+        bbox, outCat, outScore = outInfo
+        color = colorDict[outCat]
         xmin = int(bbox[0])
         ymin = int(bbox[1])
         xmax = int(bbox[2])
         ymax = int(bbox[3])
-        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0, 255, 0), thickness)
-        cv2.line(img, (xmax, ymin), infer_text_cord, (0, 255, 0), thickness)
+        cv2.rectangle(img, (xmin, ymin), (xmax, ymax), color, thickness)
+        outText = outCat + ':' + str(round(outScore, 2))
+
+        outTextSize, _ = cv2.getTextSize(outText, fontFace, fontScale, thickness)
+
+        if ymin > outTextSize[1]:
+            topLeft = (xmin-thickness+1, ymin-outTextSize[1]-3)
+            bottomRight = (xmin+outTextSize[0], ymin)
+            outTextCord = (xmin, ymin - 2)
+        else:
+            topLeft = (xmin-thickness+1, ymax-thickness+1)
+            bottomRight = (xmin+outTextSize[0], ymax+outTextSize[1]+3)
+            outTextCord = (xmin, ymax+outTextSize[1])
+
+        cv2.rectangle(img, topLeft, bottomRight, color, -1)
+        cv2.putText(img, outText, outTextCord, fontFace, fontScale, (0, 0, 0), LABEL)
+
     return img
 
 
 def visualize_results(sample_root, results_table, out_path):
     results_df = pd.read_excel(results_table, index_col=0)
-    pbar = tqdm(total=len(results_df))
+    pbar = tqdm(total=len(results_df), file=sys.stdout)
     for row in results_df.itertuples():
         img_name = getattr(row, 'image_name')
-        # product = getattr(row, 'product')
-        # size = getattr(row, 'size')
+        product = getattr(row, 'product', None)
+        size = getattr(row, 'size', None)
         category = getattr(row, 'category')
         category = str(category)
         inference = getattr(row, 'inference')
-        # short = getattr(row, 'short')
+        short = getattr(row, 'short', None)
         score = getattr(row, 'score')
         bbox = getattr(row, 'bbox')
         bbox = literal_eval(bbox)
-        ab_info = getattr(row, 'ab_info')
-        ab_info = literal_eval(ab_info)
-        # adc_width = getattr(row, 'adc_width')
-        # adc_height = getattr(row, 'adc_height')
+        defect_area = getattr(row, 'defect_area', None)
+        ab_info = getattr(row, 'ab_info', None)
+        if ab_info:
+            ab_info = literal_eval(ab_info)
+        adc_width = getattr(row, 'adc_width', None)
+        adc_height = getattr(row, 'adc_height', None)
 
+        out_lst = getattr(row, 'output', '[]')
+        out_lst = literal_eval(out_lst)
         # op1 = getattr(row, 'OP1')
         # op2 = getattr(row, 'OP2')
         # op3 = getattr(row, 'OP3')
@@ -128,11 +198,13 @@ def visualize_results(sample_root, results_table, out_path):
         os.makedirs(new_dir, exist_ok=True)
         new_img_path = os.path.join(new_dir, img_name)
 
-        # img = visualize_output(img_path, category, inference, bbox, score,
-        #                        product=product, adc_width=adc_width, adc_height=adc_height,
-        #                        op1=op1, op2=op2, op3=op3, engineer=engineer,
-        #                        short=short)
-        img = visualize_output(img_path, category, inference, bbox, score, ab_info=ab_info)
+        img = visualize_output(img_path, category, inference, score, bbox, out_lst,
+                               product=product, size=size, ab_info=ab_info,
+                               adc_width=adc_width, adc_height=adc_height, short=short,
+                               defect_area=defect_area)
+
+        # tqdm.write('[CATE]:{}, [IMAGE]:{}'.format(category, img_name))
+        # img = visualize_output(img_path, category, inference, bbox, score, ab_info=ab_info)
 
         cv2.imwrite(new_img_path, img)
         pbar.set_description('Processing category [{}]'.format(category))
@@ -140,8 +212,3 @@ def visualize_results(sample_root, results_table, out_path):
     print('[FINISH] Results have been visualized.')
 
 
-if __name__ == '__main__':
-    sample_root = r'D:\Working\Tianma\Mask-FMM\TEST\data\testset_256'
-    results_table = r'D:\Working\Tianma\Mask-FMM\TEST\result\out\deploy_results.xlsx'
-    out_path = r'D:\Working\Tianma\Mask-FMM\TEST\result\out\out'
-    visualize_results(sample_root, results_table, out_path)

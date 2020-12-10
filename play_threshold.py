@@ -134,11 +134,11 @@ class PlayThreshold(object):
 
 
 if __name__ == '__main__':
-    result_path = r'D:\Working\Tianma\1x1A4\deploy\1x1A4_0309\test.pkl'
-    test_json_path = r'D:\Working\Tianma\1x1A4\deploy\1x1A4_0309\test.json'
-    out_path = r'D:\Working\Tianma\1x1A4\deploy\1x1A4_0309'
-    table_path = r'D:\Working\Tianma\13902\TEST\0508\deploy_results.xlsx'
-    category_path = r'D:\Working\Tianma\13902\deploy\classes.txt'
+    result_path = r"D:\Working\Tianma\Mask-FMM\work_dir\20201202_thr\epoch_64.pth.pkl"
+    test_json_path = r"D:\Working\Tianma\Mask-FMM\work_dir\20201202_thr\test.json"
+    out_path = r"D:\Working\Tianma\Mask-FMM\work_dir\20201202_thr\thr"
+    # table_path = r'D:\Working\Tianma\13902\TEST\0508\deploy_results.xlsx'
+    # category_path = r'D:\Working\Tianma\13902\deploy\classes.txt'
     playThreshold = PlayThreshold(result_path, out_path,
                                   test_json_path=test_json_path,
                                   test_table_path=None,
